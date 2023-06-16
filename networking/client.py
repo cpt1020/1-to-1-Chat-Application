@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUiType
 import socket, sys, time, datetime, os # os for getting file size
 from pathlib import Path # for getting file size
-import threading
 from socketserver import ThreadingMixIn 
 
 # 載入設計好的GUI介面檔案
@@ -20,9 +19,9 @@ class ClientApp(QDialog, ui):
     def __init__(self, ipVal, portVal, nameVal):
         QWidget.__init__(self)
         self.setupUi(self)
-        self.sendBtn.clicked.connect(self.showMsg)
+        self.sendBtn.clicked.connect(self.showSentMsg)
         self.leaveBtn.clicked.connect(self.closeApp)
-        self.sendImgBtn.clicked.connect(self.sendFile)
+        self.sendFileBtn.clicked.connect(self.sendFile)
         self.saveHisBtn.clicked.connect(self.saveHistory)
         self.stickerBtn.clicked.connect(self.showSticker)
         self.chatRoom.setStyleSheet("background-color: white;")
@@ -91,7 +90,7 @@ class ClientApp(QDialog, ui):
                 file.write(str(self.chatRoom.toPlainText()))
 
     def sendFile(self):
-        fdir,_ = QFileDialog.getOpenFileName(self, "Select a File", "", "All Files (*);;Python Files (*.py)")
+        fdir,_ = QFileDialog.getOpenFileName(self, "Select a File", "", "All Files (*);;PNG Files (*.png);;C++ Files(*.cpp);;Python Files (*.py)")
         # 會return一個tuple，file directory和file extension
 
         if fdir:
@@ -116,7 +115,7 @@ class ClientApp(QDialog, ui):
         expMap = {0: "bytes", 1: "KB", 2: "MB", 3: "GB", 4: "TB"}
         return f"{round(fsize, 2)} {expMap[exp]}"
 
-    def showMsg(self):
+    def showSentMsg(self):
         self.chatRoom.moveCursor(self.chatRoomTextCursor.End)
         curTime = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d %H:%M:%S')
         preMsg = f"<span style=\" font-size:16pt; color:{TIMECOLOR};\" >{self.clientName}@{curTime}</span>"

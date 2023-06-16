@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUiType
 import socket, sys, time, datetime, os # os for getting file size
 from pathlib import Path # for getting file size
-import threading
 from socketserver import ThreadingMixIn 
 
 # 載入設計好的GUI介面檔案
@@ -19,7 +18,7 @@ class ServerApp(QDialog, ui):
     def __init__(self, ipVal, portVal, nameVal):
         QWidget.__init__(self)
         self.setupUi(self)
-        self.sendBtn.clicked.connect(self.sendMsg)
+        self.sendBtn.clicked.connect(self.showSentMsg)
         self.leaveBtn.clicked.connect(self.closeApp)
         self.sendFileBtn.clicked.connect(self.sendFile)
         self.saveHisBtn.clicked.connect(self.saveHistory)
@@ -35,9 +34,6 @@ class ServerApp(QDialog, ui):
         self.port = portVal
         self.serverName = nameVal
         self.clientName = None
-
-        # self.pushButton.setStyleSheet("background-image : url(img/001.png);")
-        # self.pushButton.resize(75, 75)
         
         self.server = ServerThread(self, self.ip, self.port, self.serverName)
         self.server.systemMessage.connect(self.showSysMsg)
@@ -95,7 +91,7 @@ class ServerApp(QDialog, ui):
                 file.write(str(self.chatRoom.toPlainText()))
 
     def sendFile(self):
-        fdir,_ = QFileDialog.getOpenFileName(self, "Select a File", "", "All Files (*);;Python Files (*.py)")
+        fdir,_ = QFileDialog.getOpenFileName(self, "Select a File", "", "All Files (*);;PNG Files (*.png);;C++ Files(*.cpp);;Python Files (*.py)")
         # 會return一個tuple，file directory和file extension
 
         if fdir:
@@ -103,7 +99,8 @@ class ServerApp(QDialog, ui):
             fsize = self.getSizeUnit(fsize_actual)
             fname = self.getFileName(fdir)
             self.showSysMsg(f"You selected {fname}")
-            self.server.sendFile(fdir, fname, fsize, fsize_actual)
+            # self.server.sendFile(fdir, fname, fsize, fsize_actual)
+            self.client.sendFileSignal.emit(fdir, fname, fsize, fsize_actual)
 
     def getFileName(self, fname):
         return fname.split("/")[-1]
@@ -119,7 +116,7 @@ class ServerApp(QDialog, ui):
         expMap = {0: "bytes", 1: "KB", 2: "MB", 3: "GB", 4: "TB"}
         return f"{round(fsize, 2)} {expMap[exp]}"
 
-    def sendMsg(self):
+    def showSentMsg(self):
         self.chatRoom.moveCursor(self.chatRoomTextCursor.End)
         time = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d %H:%M:%S')
         preMsg = f"<span style=\" font-size:16pt; color:{TIMECOLOR};\" >{self.serverName}@{time}</span>"
