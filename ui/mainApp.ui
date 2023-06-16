@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>452</width>
-    <height>518</height>
+    <height>517</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -177,7 +177,7 @@ QScrollBar::add-line:vertical {
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="sendImgBtn">
+     <widget class="QPushButton" name="sendFileBtn">
       <property name="font">
        <font>
         <family>Varela Round</family>

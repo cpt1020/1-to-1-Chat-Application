@@ -41,7 +41,7 @@ class ClientApp(QDialog, ui):
         self.client.serverMessage.connect(self.showServerMsg)
         self.client.systemMessage.connect(self.showSysMsg)
         self.client.recFileMessage.connect(self.receiveFile)
-        self.client.sentStckerSignal.connect(self.showSentSticker)
+        self.client.stickerSentSignal.connect(self.showSentSticker)
         self.client.start()
     
     def showSentSticker(self, imgName):
@@ -196,7 +196,7 @@ class ClientThread(QThread):
     serverMessage = pyqtSignal(str)
     systemMessage = pyqtSignal(str)
     recFileMessage = pyqtSignal(str, str, int)
-    sentStckerSignal = pyqtSignal(str)
+    stickerSentSignal = pyqtSignal(str)
     userReplySignal = pyqtSignal()
     sendFileSignal = pyqtSignal(str, str, str, int) ############
 
@@ -268,7 +268,7 @@ class ClientThread(QThread):
                 self.systemMessage.emit(f"{self.serverName} refused to receive your file")
             elif msg == b"<SENDSTICKER>":
                 imgName = self.clientSocket.recv(2048).decode(self.format)
-                self.sentStckerSignal.emit(imgName)
+                self.stickerSentSignal.emit(imgName)
             else:
                 msg = msg.decode(self.format)
                 self.serverMessage.emit(msg)
@@ -318,7 +318,7 @@ class ClientThread(QThread):
             file.close()
             print("file closed")
         except Exception as e:
-            self.systemMessage.emit(f"Error sending image: {e}")
+            self.systemMessage.emit(f"Error sending file: {e}")
         self.sentFileDir = None
 
     def receiveFile(self):

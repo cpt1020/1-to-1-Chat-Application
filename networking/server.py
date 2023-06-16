@@ -21,7 +21,7 @@ class ServerApp(QDialog, ui):
         self.setupUi(self)
         self.sendBtn.clicked.connect(self.sendMsg)
         self.leaveBtn.clicked.connect(self.closeApp)
-        self.sendImgBtn.clicked.connect(self.sendFile)
+        self.sendFileBtn.clicked.connect(self.sendFile)
         self.saveHisBtn.clicked.connect(self.saveHistory)
         self.stickerBtn.clicked.connect(self.showSticker)
         self.chatRoom.setStyleSheet("background-color: white;")
@@ -43,7 +43,7 @@ class ServerApp(QDialog, ui):
         self.server.systemMessage.connect(self.showSysMsg)
         self.server.clientMessage.connect(self.showClientMsg)
         self.server.recFileMessage.connect(self.receiveFile)
-        self.server.sentStckerSignal.connect(self.showSentSticker)
+        self.server.stickerSentSignal.connect(self.showSentSticker)
         self.server.start()
 
         # print(f"in ServerApp self.server {int(self.server.currentThreadId())}")  
@@ -200,7 +200,7 @@ class ServerThread(QThread):
     clientMessage = pyqtSignal(str)
     systemMessage = pyqtSignal(str)
     recFileMessage = pyqtSignal(str, str, int)
-    sentStckerSignal = pyqtSignal(str)
+    stickerSentSignal = pyqtSignal(str)
     # userReplySignal = pyqtSignal(bool, str, str, int)
     userReplySignal = pyqtSignal()
 
@@ -260,7 +260,7 @@ class ServerThread(QThread):
                 self.saveFile()
             elif msg == b"<SENDSTICKER>":
                 imgName = self.clientSocket.recv(2048).decode(self.format)
-                self.sentStckerSignal.emit(imgName)
+                self.stickerSentSignal.emit(imgName)
             else:
                 msg = msg.decode(self.format)
                 self.clientMessage.emit(msg)
