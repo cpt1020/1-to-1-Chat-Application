@@ -1,11 +1,10 @@
-from PyQt5 import QtGui
+# from PyQt5 import QtGui
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUiType
 import socket, sys, time, datetime, os # os for getting file size
-from pathlib import Path # for getting file size
-from socketserver import ThreadingMixIn 
+# from socketserver import ThreadingMixIn 
 
 # 載入設計好的GUI介面檔案
 ui,_=loadUiType('ui/mainApp.ui')
@@ -45,8 +44,8 @@ class ClientApp(QDialog, ui):
     
     def showSentSticker(self, imgName):
         self.chatRoom.moveCursor(self.chatRoomTextCursor.End)
-        time = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d %H:%M:%S')
-        preMsg = f"<span style=\" font-size:16pt; color:{TIMECOLOR};\" >{self.serverName}@{time}</span>"
+        curTime = datetime.datetime.now(tz=datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y.%m.%d %H:%M:%S')
+        preMsg = f"<span style=\" font-size:16pt; color:{TIMECOLOR};\" >{self.serverName}@{curTime}</span>"
         self.chatRoom.append(preMsg)
         self.chatRoom.setAlignment(Qt.AlignLeft)
         
@@ -78,7 +77,7 @@ class ClientApp(QDialog, ui):
         self.chatRoom.setAlignment(Qt.AlignRight)
         self.typeText.setText("")
         self.chatRoomTextCursor = self.chatRoom.textCursor()
-        self.client.clientSocket.sendall(b"<SENDSTICKER>")
+        self.client.clientSocket.sendall(b"<SEND_STICKER>")
         time.sleep(0.1)
         self.client.clientSocket.sendall(imgName.encode('utf-8'))
 
@@ -98,8 +97,7 @@ class ClientApp(QDialog, ui):
             fsize = self.getSizeUnit(fsize_actual)
             fname = self.getFileName(fdir)
             self.showSysMsg(f"You selected {fname}")
-            # self.client.sendFile(fdir, fname, fsize, fsize_actual)
-            self.client.sendFileSignal.emit(fdir, fname, fsize, fsize_actual) ####
+            self.client.sendFileSignal.emit(fdir, fname, fsize, fsize_actual)
 
     def getFileName(self, fname):
         return fname.split("/")[-1]
@@ -172,23 +170,19 @@ class ClientApp(QDialog, ui):
 
     def receiveFile(self, msg, fname, fsize):
         reply = QMessageBox.question(self, "Receiving file", f"{msg}.\nWould you like to receive? 😊", QMessageBox.Yes | QMessageBox.No)
+        
         if (reply == QMessageBox.Yes):
             fdir = QFileDialog.getExistingDirectory(self, "Select a Directory", "")
             if fdir != "":
                 reply = True
-                # self.client.replyRecFile(reply)
-                # self.client.saveFile(fdir, fname, fsize)
                 self.client.userReply = (reply, fdir, fname, fsize)
             else:
                 reply = False
-                # self.client.replyRecFile(reply)
-                # self.client.event.set()
                 self.client.userReply = (reply, "", fname, fsize)
         else:
             reply = False
-            # self.client.replyRecFile(reply)
-            # self.client.event.set()
             self.client.userReply = (reply, "", fname, fsize)
+
         self.client.userReplySignal.emit()
 
 class ClientThread(QThread):
@@ -225,18 +219,12 @@ class ClientThread(QThread):
         self.serverName = self.clientSocket.recv(2048).decode(self.format)
         self.window.serverName = self.serverName
     
-    def sendClientName(self):
-        try:
-            self.clientSocket.send(self.clientName.encode(self.format))
-        except Exception as e:
-            self.systemMessage.emit(f"Error sending client name: {e}")
-
     def run(self):
         self.systemMessage.emit(f"Hello {self.clientName} ^_^")
         self.systemMessage.emit(f"You are now connected with {self.serverName}")
 
         while self.connecting:
-            # print(f"in run() while self.connecting, id {int(self.currentThreadId())}")
+
             msg = self.clientSocket.recv(2048)
 
             if not msg:
@@ -246,26 +234,23 @@ class ClientThread(QThread):
                 # 這樣會出錯
                 # 要用signal的方式!!!
                 break
-            elif msg == b"<SENDFILE>":
+            elif msg == b"<SEND_FILE>":
                 self.receiveFile()
 
                 if self.userReply[0] == True:
-                    self.replyRecFile(self.userReply[0])
-                    # self.saveFile(self.userReply[1], self.userReply[2], self.userReply[3])
+                    # self.replyRecFile(self.userReply[0])
+                    self.clientSocket.sendall(b"<RECEIVE_SENT_FILE>")
                 else:
-                    self.replyRecFile(self.userReply[0])
-
-            elif msg == b"<RECEIVESENTFILE>":
-                print("msg == b'<RECEIVESENTFILE>'")
+                    # self.replyRecFile(self.userReply[0])
+                    self.clientSocket.sendall(b"<REJECT_SENT_FILE>")
+            elif msg == b"<RECEIVE_SENT_FILE>":
                 self.systemMessage.emit(f"{self.serverName} accepted your file")
-                print("msg emitted")
                 self.sendFile()
-            elif msg == b"<REJECTSENTFILE>":
-                print("msg == b'<REJECTSENTFILE>'")
+            elif msg == b"<REJECT_SENT_FILE>":
                 self.systemMessage.emit(f"{self.serverName} refused to receive your file")
             elif msg == b"<SENDING>":
                 self.saveFile()
-            elif msg == b"<SENDSTICKER>":
+            elif msg == b"<SEND_STICKER>":
                 imgName = self.clientSocket.recv(2048).decode(self.format)
                 self.stickerSentSignal.emit(imgName)
             else:
@@ -275,47 +260,35 @@ class ClientThread(QThread):
         self.clientSocket.close() 
 
     def sendFileInfo(self, fdir, fname, fsize, fsize_actual):
-        print("in sendFileInfo")
-        self.clientSocket.sendall(b"<SENDFILE>")
+        self.clientSocket.sendall(b"<SEND_FILE>")
         time.sleep(0.1)
         self.clientSocket.sendall(f"{self.clientName} would like to send you a file.\nFile name: {fname}\nFile size: {fsize}".encode(self.format))
         time.sleep(0.1)
         self.clientSocket.sendall(f"{fname}".encode(self.format))
         time.sleep(0.1)
         self.clientSocket.sendall(str(fsize_actual).encode(self.format))
-        print("after sendall")
         self.sentFileDir = fdir
 
-        # reply = self.clientSocket.recv(2048)
-        # print("reply received")
-
     def sendFile(self):
-        print(f"in sendFile, id: {int(self.currentThreadId())}")
+
         try:
-            # print("reply == b'1':")
             self.clientSocket.sendall(b"<SENDING>")
-            print("sent <SENDING>")
-            print(f"self.sentFileDir: {self.sentFileDir}")
             try:
                 file = open(self.sentFileDir, "rb")
             except Exception as e:
                 self.systemMessage.emit(f"Error opening file: {e}")
+
             data = file.read()
-            # self.clientSocket.sendall(data)
-            print(f"len(data): {len(data)}")
             fsize = len(data)
             total_sent = 0
 
             while total_sent < fsize:
-                print("sending file")
                 sent = self.clientSocket.send(data[total_sent:])
                 if sent == 0:
                     break
                 total_sent += sent
-
-            print("file sent")
             file.close()
-            print("file closed")
+
         except Exception as e:
             self.systemMessage.emit(f"Error sending file: {e}")
         self.sentFileDir = None
@@ -327,13 +300,10 @@ class ClientThread(QThread):
         self.recFileMessage.emit(msg, fname, fsize)
 
         loop = QEventLoop()
-        print("in receiveFile, after loop = QEventLoop()")
         self.userReplySignal.connect(loop.quit)
-        print("in receiveFile, after self.userReplySignal.connect(loop.quit)")
         loop.exec_()
-        print("in receiveFile, after loop.exec_()")
 
-        return self.userReply
+        # return self.userReply
 
     def saveFile(self):
 
@@ -358,38 +328,18 @@ class ClientThread(QThread):
         self.systemMessage.emit(f"{fname} received")
         self.userReply = None
 
-        # while True:
-        #     data = self.clientSocket.recv(2048)
-        #     if not data:
-        #         break
-        #     file_bytes += data
-        #     if len(data) < 2048:
-        #         # if len(data) < 2048
-        #         # this means this is the last socket of the transferred file
-        #         # so we can break
-        #         break
-        # file.write(file_bytes)
-        # file.close()
-        # self.systemMessage.emit(f"{fname} received")
-        # # self.event.set()
+    # def replyRecFile(self, reply):
 
-    def replyRecFile(self, reply):
+    #     if reply == True:
+    #         self.clientSocket.sendall(b"<RECEIVE_SENT_FILE>")
+    #     else:
+    #         self.clientSocket.sendall(b"<REJECT_SENT_FILE>")
 
-        # print(f"in replyRecFile(): {int(self.currentThreadId())}")
-
-        if reply == True:
-            self.clientSocket.sendall(b"<RECEIVESENTFILE>")
-        else:
-            self.clientSocket.sendall(b"<REJECTSENTFILE>")
-
-        # if reply == True:
-        #     self.clientSocket.sendall(b"1")
-        #     time.sleep(0.1)
-        #     print(f"sent")
-        # else:
-        #     self.clientSocket.sendall(b"0")
-        #     time.sleep(0.1)
-        #     print(f"sent")
+    def sendClientName(self):
+        try:
+            self.clientSocket.send(self.clientName.encode(self.format))
+        except Exception as e:
+            self.systemMessage.emit(f"Error sending client name: {e}")
 
     def sendMsg(self, msg):
         try:
