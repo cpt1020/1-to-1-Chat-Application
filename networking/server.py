@@ -28,7 +28,7 @@ class ServerApp(QDialog, ui):
         self.typeText.setStyleSheet(f"color: {MSGCOLOR}")
         self.chatRoomTextCursor = self.chatRoom.textCursor()
         self.setWindowTitle("Chatting Room - Server Window")
-        self.show()
+        # self.show()
         self.ip = ipVal
         self.port = portVal
         self.serverName = nameVal
@@ -66,7 +66,7 @@ class ServerApp(QDialog, ui):
         self.chatRoom.append(preMsg)
         self.chatRoom.setAlignment(Qt.AlignRight)
         
-        imgName = "img/001.png"
+        imgName = "stickers/001.png"
         imgFormat = QTextImageFormat()
         imgFormat.setWidth(150)
         imgFormat.setHeight(150)
@@ -233,10 +233,8 @@ class ServerThread(QThread):
                 self.receiveFile()
 
                 if self.userReply[0] == True:
-                    # self.replyRecFile(self.userReply[0])
                     self.clientSocket.sendall(b"<RECEIVE_SENT_FILE>")
                 else:
-                    # self.replyRecFile(self.userReply[0])
                     self.clientSocket.sendall(b"<REJECT_SENT_FILE>")
             elif msg == b"<RECEIVE_SENT_FILE>":
                 self.systemMessage.emit(f"{self.clientName} accepted your file")

@@ -67,7 +67,7 @@ class ClientApp(QDialog, ui):
         self.chatRoom.append(preMsg)
         self.chatRoom.setAlignment(Qt.AlignRight)
         
-        imgName = "img/001.png"
+        imgName = "stickers/001.png"
         imgFormat = QTextImageFormat()
         imgFormat.setWidth(150)
         imgFormat.setHeight(150)
@@ -79,7 +79,10 @@ class ClientApp(QDialog, ui):
         self.chatRoomTextCursor = self.chatRoom.textCursor()
         self.client.clientSocket.sendall(b"<SEND_STICKER>")
         time.sleep(0.1)
-        self.client.clientSocket.sendall(imgName.encode('utf-8'))
+        try:
+            self.client.clientSocket.sendall(imgName.encode('utf-8'))
+        except Exception as e:
+            print(f"error sending sticker: {e}")
 
     def saveHistory(self):
         fdir = QFileDialog.getExistingDirectory(self, "Select a Directory", "")
